@@ -1,22 +1,22 @@
 /*
-   Copyright (C) 2014 by Guorui Xi <kevin.xgr@gmail.com>
-   Part of the Battle for Wesnoth Project http://www.wesnoth.org/
+Copyright (C) 2014 by Guorui Xi <kevin.xgr@gmail.com>
+Part of the Battle for Wesnoth Project http://www.wesnoth.org/
 
-   This program is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2 of the License, or
-   (at your option) any later version.
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY.
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY.
 
-   See the COPYING file for more details.
+See the COPYING file for more details.
 */
 
 /**
- * Strategy formulation with candidate action evaluator
- * @file
- * See http://wiki.wesnoth.org/AI_sfrca
- */
+* Strategy formulation with candidate action evaluator
+* @file
+* See http://wiki.wesnoth.org/AI_sfrca
+*/
 
 #ifndef AI_TESTING_STAGE_SF_WITH_RCA_HPP_INCLUDED
 #define AI_TESTING_STAGE_SF_WITH_RCA_HPP_INCLUDED
@@ -36,104 +36,104 @@
 
 namespace ai {
 
-namespace testing_ai_default {
+	namespace testing_ai_default {
 
-class turn_state;
-class decision;
+		//class turn_state;
+		//class decision;
 
-class strategy_formulation_with_rca: public virtual stage, public virtual rca_context {
-public:
-	strategy_formulation_with_rca(ai_context &context, const config &cfg);
+		class decision
+		{
+			friend std::ostream& operator<<(std::ostream&, const decision&);
 
-	~strategy_formulation_with_rca();
+		public:
+			static const int total_decisions = 2;
 
-	bool do_play_stage();
+			explicit decision(int decision_no_) : decision_no_(decision_no_)
+			{
+			}
 
-	void on_create();
+			~decision(){}
 
-	config to_config() const;
+			int get_decision_no() const { return decision_no_; }
 
-	rca_context& get_rca_context();
+			decision& set_decision_no(int decision_no_) { this->decision_no_ = decision_no_; return *this; }
 
-	void simulate_states_ahead();
+			bool is_valid() const { return (decision_no_ >= 0 && decision_no_ < total_decisions); }
 
-	void set_optimal_strategy();
+		private:
+			int decision_no_;
+		};
 
-	const turn_state simulate_state(const int decision_no_, const turn_state &state);
+		class turn_state
+		{
+		public:
+			turn_state(const int own_side_, const int turn_no_, const unit_map &units_, const std::vector<team> &teams_);
 
-	void switch_side();
+			~turn_state();
 
-	void init_side();
+			void scoring_state();
 
-private:
-	std::queue<turn_state> states_;
+			int get_own_side() const { return own_side_; }
 
-	std::vector<bool> enemy_this_turn_;	// Store if is enemy for this turn. Use in the set optimal strategy function.
+			int get_turn_no() const { return turn_no_; }
 
-	boost::shared_ptr<candidate_action_evaluation_loop> rca_;
-};
+			double get_state_score() const { return state_score_; }
 
-class decision
-{
-	friend std::ostream& operator<<(std::ostream&, const decision&);
+			const unit_map& get_units() const { return units_; }
 
-public:
-	static const int total_decisions = 2;
+			const std::vector<team>& get_teams() const { return teams_; }
 
-	explicit decision(int decision_no_) : decision_no_(decision_no_)
-	{
-	}
+			const decision& get_decision() const { return decision_; }
 
-	~decision(){}
+			void set_decision(int decision_no_) { decision_.set_decision_no(decision_no_); }
 
-	int get_decision_no() const { return decision_no_; }
+		private:
+			const int own_side_;
 
-	decision& set_decision_no(int decision_no_) { this->decision_no_ = decision_no_; return *this; }
+			const int turn_no_;
 
-	bool is_valid() const { return (decision_no_ >= 0 && decision_no_ < total_decisions); }
+			double state_score_;
 
-private:
-	int decision_no_;
-};
+			const unit_map units_;
 
-class turn_state
-{
-public:
-	turn_state(const int own_side_, const int turn_no_, const unit_map &units_, const std::vector<team> &teams_);
+			const std::vector<team> teams_;
 
-	~turn_state();
+			decision decision_;
+		};
 
-	void scoring_state();
+		class strategy_formulation_with_rca : public virtual stage, public virtual rca_context {
+		public:
+			strategy_formulation_with_rca(ai_context &context, const config &cfg);
 
-	int get_own_side() const { return own_side_; }
+			~strategy_formulation_with_rca();
 
-	int get_turn_no() const { return turn_no_; }
+			bool do_play_stage();
 
-	double get_state_score() const { return state_score_; }
+			void on_create();
 
-	const unit_map& get_units() const { return units_; }
+			config to_config() const;
 
-	const std::vector<team>& get_teams() const { return teams_; }
+			rca_context& get_rca_context();
 
-	const decision& get_decision() const { return decision_; }
+			void simulate_states_ahead();
 
-	void set_decision(int decision_no_) { decision_.set_decision_no(decision_no_); }
+			void set_optimal_strategy();
 
-private:
-	const int own_side_;
+			const turn_state simulate_state(const int decision_no_, const turn_state &state);
 
-	const int turn_no_;
+			void switch_side();
 
-	double state_score_;
+			void init_side();
 
-	const unit_map units_;
+		private:
+			std::queue<turn_state> states_;
 
-	const std::vector<team> teams_;
+			std::vector<bool> enemy_this_turn_;	// Store if is enemy for this turn. Use in the set optimal strategy function.
 
-	decision decision_;
-};
+			boost::shared_ptr<candidate_action_evaluation_loop> rca_;
+		};
 
-} // of namespace testing_ai_default
+	} // of namespace testing_ai_default
 
 } // of namespace ai
 
