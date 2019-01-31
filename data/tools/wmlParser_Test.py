@@ -3,7 +3,7 @@
 import wesnoth.wmlparser3 as wmlparser
 
 p = wmlparser.Parser()
-cfg = p.parse_file('wmlParser_Test_WMLFile.cfg')
+cfg = p.parse_file('wmlParser_SplitDesc_WMLFile.cfg')
 for unit in cfg.get_all(tag = "unit"):
     print(unit.get_text_val("id"))
     print(unit.get_text_val("name"))
