@@ -71,11 +71,29 @@ def is_directive(str):
     "Identify things that shouldn't be indented."
     return str.startswith(("#ifdef", "#ifndef", "#ifhave", "#ifnhave", "#ifver", "#ifnver", "#else", "#endif", "#define", "#enddef", "#undef", "#arg", "#endarg"))
 
+def num_preindent_matches(str):
+    return int(str.startswith("[/") or str.startswith(")") or str.startswith(tuple(closer_prefixes)))
+
+def num_postindent_matches(str):
+    strippedStr = re.sub(r'[ \t\n]', "", str)
+    # To find how many back indent there is in the input string that will be applied *after* 
+    # outputting the line to the file, first the input string stripped of all spaces, tabs 
+    # and newlines, then it is inverted. After, a regular expression iterator matches all 
+    # occurrences of the "})}" pattern. So if there are multiple ")}" symbols in the input 
+    # string, this expression will find them all except for the first one. Finally, we sum 
+    # up all the matches of the regex iterator.
+    num_closers = sum(1 for _ in re.finditer(r'(}\)})', strippedStr[::-1]))
+    # Here we catch the first ")}" symbol in the input string. If the string starts with
+    # ")" then we already caught the symbol in the num_preindent_matches function.
+    if not str.startswith(")"):
+        num_closers += int(strippedStr.endswith(")}"))
+    return num_closers
+
 def closer(str):
     "Are we looking at a closing tag?"
     if str.startswith("#"):
         return False
-    elif str.startswith("[/") or str.startswith(")"):
+    elif str.startswith("[/") or str.startswith(")") or str.endswith(")}"):
         return True
     else:
         return str.startswith(tuple(closer_prefixes))
@@ -167,7 +185,7 @@ def reindent(name, infp, outfp):
         # In the close case, we must compute new indent *before* emitting
         # the new line so the close tag will be at the same level as the
         # one that started the block.
-        if closer(transformed):
+        if num_preindent_matches(transformed) > 0:
             if indent == "":
                 print('wmlindent: "%s", line %d: close tag %s with indent already zero.' % (name, countlines, transformed.strip()), file=sys.stderr)
             else:
@@ -194,6 +212,13 @@ def reindent(name, infp, outfp):
             output = output.rstrip() + "\n"
         # And ship the line
         outfp.write(output)
+        # Here we update the indent for the following line
+        num_postindent = num_postindent_matches(transformed)
+        if num_postindent > 0:
+            if indent == "":
+                print('wmlindent: "%s", line %d: close tag %s with indent already zero.' % (name, countlines, transformed.strip()), file=sys.stderr)
+            else:
+                indent = indent[:-len(wmltools.baseindent) * num_postindent]
         # May need to indent based on the line we just saw.
         if opener(transformed):
             indent += wmltools.baseindent
