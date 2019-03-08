@@ -74,19 +74,46 @@ def is_directive(str):
 def num_preindent_matches(str):
     return int(str.startswith("[/") or str.startswith(")") or str.startswith(tuple(closer_prefixes)))
 
+ignore_closer_next = False
+
 def num_postindent_matches(str):
+    global ignore_closer_next
+
     strippedStr = re.sub(r'[ \t\n]', "", str)
     # To find how many back indent there is in the input string that will be applied *after* 
     # outputting the line to the file, first the input string stripped of all spaces, tabs 
     # and newlines, then it is inverted. After, a regular expression iterator matches all 
-    # occurrences of the "})}" pattern. So if there are multiple ")}" symbols in the input 
+    # occurrences of the "})})" pattern. So if there are multiple ")}" symbols in the input 
     # string, this expression will find them all except for the first one. Finally, we sum 
     # up all the matches of the regex iterator.
-    num_closers = sum(1 for _ in re.finditer(r'(}\)})', strippedStr[::-1]))
+    num_closers = sum(1 for _ in re.finditer(r'(}\))', strippedStr[::-1]))
+
+    if num_closers > 0 and str.startswith(")"):
+        num_closers -= 1
+
+    if opener(str) or closer(str):
+        ignore_closer_next = False
+    elif not ignore_closer_next and bool(re.match(r"^[^\”\{]*\{[^\”]*\(.*$", str)):
+        ignore_closer_next = True
+
+    if (num_closers == 1) and ignore_closer_next:
+        num_closers = 0
+
+    """
     # Here we catch the first ")}" symbol in the input string. If the string starts with
     # ")" then we already caught the symbol in the num_preindent_matches function.
-    if not str.startswith(")"):
-        num_closers += int(strippedStr.endswith(")}"))
+    # The regular expression checks for a group that is a one liner, so no need to check 
+    # for an ending ")}".
+    if strippedStr.endswith(")}"):
+        if not str.startswith(")") and not ignore_closer_next and not re.match(r"^[^\”\{]*\{[^\”]*\(.*$", str):
+            num_closers += 1            
+        elif ignore_closer_next:
+            ignore_closer_next = False    
+
+    if not ignore_closer_next:
+        ignore_closer_next = bool(re.match(r"^[^\”\{]*\{[^\”]*\(.*$", str))
+    """
+
     return num_closers
 
 def closer(str):
